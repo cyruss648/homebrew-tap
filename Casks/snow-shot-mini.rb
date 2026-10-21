@@ -11,7 +11,7 @@ cask "snow-shot-mini" do
   depends_on macos: :sequoia
 
   app "Snow Shot Mini.app"
-  # Installer scripts run before app artifacts and preserve HOME and Keychain access.
+  # Vendor installers preserve HOME and Keychain access; flight steps isolate HOME.
   installer script: {
     executable:   "/bin/bash",
     args:         [staged_path.join("prepare-snow-shot-homebrew.sh"),
@@ -19,11 +19,17 @@ cask "snow-shot-mini" do
                    staged_path.join("Snow Shot Mini.app"),
                    "mini"],
     must_succeed: true,
+    sudo:         false,
     print_stderr: true,
   }
 
-  # Homebrew removes the app; retain the signing identity and user data.
-  uninstall quit: "com.snowshot.snow_shot_mini"
+  # Remove any prepared copy; the app artifact removes the installed app.
+  # Keep the installing account's persistent signing identity and state.
+  uninstall script: {
+    executable: "/bin/rm",
+    args:       ["-rf", "--", "#{staged_path}/Snow Shot Mini.app"],
+    sudo:       false,
+  }
 
   caveats <<~EOS
     Snow Shot Mini reuses a signing identity in your login Keychain. The first install
